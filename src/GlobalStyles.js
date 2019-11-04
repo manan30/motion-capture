@@ -5,6 +5,7 @@ export default createGlobalStyle`
   body {
     margin: 0;
     background: black;
+    color: white;
     font-family: "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif";
   }
 `;
@@ -33,4 +34,40 @@ export const CodeFAB = styled.div`
 
 export const Canvas = styled(c)`
   height: 100vh !important;
+`;
+
+export const Form = styled.form`
+  position: absolute;
+  top: 10%;
+  right: 5%;
+  height: 24px;
+  width: 200px;
+
+  z-index: 999;
+`;
+
+export const Select = styled.select`
+  height: 100%;
+  width: 100%;
+  margin: 16px 0;
+  padding: 10px;
+
+  border: none;
+  text-decoration: none;
+`;
+
+export const Submit = styled.input`
+  height: 24px;
+  width: 100%;
+
+  background: black;
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+
+  :hover {
+    color: black;
+    background: white;
+  }
 `;

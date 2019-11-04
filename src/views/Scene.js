@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useThree } from 'react-three-fiber';
+import { useThree, useRender } from 'react-three-fiber';
 
 import * as THREE from 'three';
 import Light from '../components/Light';
@@ -14,13 +14,21 @@ const fileContents = fetch(File)
   .then(res => res.text())
   .then(contents => contents);
 
+let skeletonHelper;
+let mixer;
+
 function Scene() {
   const { camera, scene } = useThree();
   const [contents, setContents] = useState();
   const [data, setData] = useState();
   const stickFigureRef = useRef();
 
-  camera.position.set(0, 5, 10);
+  camera.fov = 60;
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.near = 1;
+  camera.far = 100;
+
+  camera.position.set(0, 200, 400);
 
   fileContents.then(res => setContents(res));
 
@@ -33,12 +41,24 @@ function Scene() {
   }, [contents]);
 
   if (stickFigureRef.current && data) {
+    stickFigureRef.current.scale.set(0.9, 0.9, 0.9);
+    stickFigureRef.current.position.set(0, 0, 0);
     stickFigureRef.current.add(data.skeleton.bones[0]);
     stickFigureRef.current.bind(data.skeleton);
-    const skeletonHelper = new THREE.SkeletonHelper(stickFigureRef.current);
-    skeletonHelper.material.linewidth = 5;
+    skeletonHelper = new THREE.SkeletonHelper(stickFigureRef.current);
+    skeletonHelper.material.linewidth = 50;
     scene.add(skeletonHelper);
+
+    mixer = new THREE.AnimationMixer(stickFigureRef.current);
+    mixer
+      .clipAction(data.clip)
+      .setEffectiveWeight(1.0)
+      .play();
   }
+
+  useRender((_, delta) => {
+    if (mixer) mixer.update(delta);
+  });
 
   return (
     <>

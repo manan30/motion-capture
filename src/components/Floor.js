@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
-import Proptypes from 'prop-types';
 import * as THREE from 'three';
 
 import floorTexture from '../textures/hardwood2_diffuse.jpg';
 import floorBumpTexture from '../textures/hardwood2_bump.jpg';
 import floorRoughnessTexture from '../textures/hardwood2_roughness.jpg';
 
-function Floor({ setRef }) {
+function Floor() {
   const texture = useMemo(
     () => new THREE.TextureLoader().load(floorTexture),
     []
@@ -38,8 +37,8 @@ function Floor({ setRef }) {
   roughnessTexture.repeat.set(10, 10);
 
   return (
-    <mesh ref={setRef} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeBufferGeometry attach='geometry' args={[20, 20]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeBufferGeometry attach='geometry' args={[400, 400]} />
       <meshStandardMaterial
         attach='material'
         color={0xffffff}
@@ -55,9 +54,5 @@ function Floor({ setRef }) {
     </mesh>
   );
 }
-
-Floor.propTypes = { setRef: Proptypes.objectOf(Proptypes.any) };
-
-Floor.defaultProps = { setRef: {} };
 
 export default Floor;

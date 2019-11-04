@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const BVHImport = new (function() {
+const BvhHelper = new (function BvhHelper() {
   /*
 		converts the internal bvh node structure to a THREE.Bone hierarchy
 
@@ -116,62 +116,7 @@ const BVHImport = new (function() {
   };
 
   /*
-		reads a BVH file
-	*/
-  this.readBvh = lines => {
-    // read model structure
-    if (
-      lines
-        .shift()
-        .trim()
-        .toUpperCase() !== 'HIERARCHY'
-    )
-      throw new Error('HIERARCHY expected');
-
-    const list = [];
-    const root = BVHImport.readNode(lines, lines.shift().trim(), list);
-
-    // read motion data
-    if (
-      lines
-        .shift()
-        .trim()
-        .toUpperCase() !== 'MOTION'
-    )
-      throw new Error('MOTION  expected');
-
-    let tokens = lines
-      .shift()
-      .trim()
-      .split(/[\s]+/);
-
-    // number of frames
-    const numFrames = parseInt(tokens[1], 10);
-    if (isNaN(numFrames)) throw new Error('Failed to read number of frames.');
-
-    // frame time
-    tokens = lines
-      .shift()
-      .trim()
-      .split(/[\s]+/);
-    const frameTime = parseFloat(tokens[2]);
-    if (isNaN(frameTime)) throw new Error('Failed to read frame time.');
-
-    // read frame data line by line
-    for (let i = 0; i < numFrames; i += 1) {
-      tokens = lines
-        .shift()
-        .trim()
-        .split(/[\s]+/);
-
-      BVHImport.readFrameData(tokens, i * frameTime, root, list);
-    }
-
-    return root;
-  };
-
-  /*
-	 Recursively parses the HIERARCHY section of the BVH file
+	 Recursively parses the HIERACHY section of the BVH file
 
 	 - lines: all lines of the file. lines are consumed as we go along.
 	 - firstline: line containing the node type and name e.g. "JOINT hip"
@@ -179,11 +124,11 @@ const BVHImport = new (function() {
 
 	 returns: a BVH node including children
 	*/
-  this.readNode = function(lines, firstline, list) {
+  function readNode(lines, firstline, list) {
     const node = { name: '', type: '', frames: [] };
     list.push(node);
 
-    // parse node type and name.
+    // parse node tpye and name.
     let tokens = firstline.trim().split(/[\s]+/);
 
     if (
@@ -245,48 +190,129 @@ const BVHImport = new (function() {
       if (line === '}') {
         return node;
       }
-      node.children.push(BVHImport.readNode(lines, line, list));
+      node.children.push(readNode(lines, line, list));
     }
-  };
-
-  /*
-	 a minimal quaternion implementation to store joint rotations
-		 used in keyframe data
-	*/
-  function Quat(x, y, z, w) {
-    this.x = x || 0;
-    this.y = y || 0;
-    this.z = z || 0;
-    this.w = w === undefined ? 1 : w;
   }
 
-  Quat.prototype.setFromAxisAngle = (ax, ay, az, angle) => {
-    const angleHalf = angle * 0.5;
-    const sin = Math.sin(angleHalf);
+  function readFrameData(data, frameTime, bone) {
+    if (bone.type === 'ENDSITE')
+      // end sites have no motion data
+      return;
 
-    this.x = ax * sin;
-    this.y = ay * sin;
-    this.z = az * sin;
-    this.w = Math.cos(angleHalf);
-  };
+    // add keyframe
+    const keyframe = {
+      time: frameTime,
+      position: { x: 0, y: 0, z: 0 },
+      rotation: new THREE.Quaternion()
+    };
 
-  Quat.prototype.multiply = quat => {
-    const a = this;
-    const b = quat;
+    bone.frames.push(keyframe);
 
-    const qax = a.x;
-    const qay = a.y;
-    const qaz = a.z;
-    const qaw = a.w;
-    const qbx = b.x;
-    const qby = b.y;
-    const qbz = b.z;
-    const qbw = b.w;
+    // parse values for each channel in node
+    for (let i = 0; i < bone.channels.length; i += 1) {
+      const quat = new THREE.Quaternion();
 
-    this.x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
-    this.y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
-    this.z = qaz * qbw + qaw * qbz + qax * qby - qay * qbx;
-    this.w = qaw * qbw - qax * qbx - qay * qby - qaz * qbz;
+      switch (bone.channels[i]) {
+        case 'Xposition':
+          keyframe.position.x = parseFloat(data.shift().trim());
+          break;
+
+        case 'Yposition':
+          keyframe.position.y = parseFloat(data.shift().trim());
+          break;
+
+        case 'Zposition':
+          keyframe.position.z = parseFloat(data.shift().trim());
+          break;
+
+        case 'Xrotation':
+          quat.setFromAxisAngle(
+            new THREE.Vector3(1, 0, 0),
+            (parseFloat(data.shift().trim()) * Math.PI) / 180
+          );
+          keyframe.rotation.multiply(quat);
+          break;
+
+        case 'Yrotation':
+          quat.setFromAxisAngle(
+            new THREE.Vector3(0, 1, 0),
+            (parseFloat(data.shift().trim()) * Math.PI) / 180
+          );
+          keyframe.rotation.multiply(quat);
+          break;
+
+        case 'Zrotation':
+          quat.setFromAxisAngle(
+            new THREE.Vector3(0, 0, 1),
+            (parseFloat(data.shift().trim()) * Math.PI) / 180
+          );
+          keyframe.rotation.multiply(quat);
+          break;
+
+        default:
+          throw new Error('invalid channel type');
+      }
+    }
+
+    // parse child nodes
+    for (let i = 0; i < bone.children.length; i += 1) {
+      readFrameData(data, frameTime, bone.children[i]);
+    }
+  }
+
+  /*
+		reads a BVH file
+	*/
+  this.readBvh = lines => {
+    // read model structure
+    if (
+      lines
+        .shift()
+        .trim()
+        .toUpperCase() !== 'HIERARCHY'
+    )
+      throw new Error('HIERARCHY expected');
+
+    const list = [];
+    const root = readNode(lines, lines.shift().trim(), list);
+
+    // read motion data
+    if (
+      lines
+        .shift()
+        .trim()
+        .toUpperCase() !== 'MOTION'
+    )
+      throw new Error('MOTION  expected');
+
+    let tokens = lines
+      .shift()
+      .trim()
+      .split(/[\s]+/);
+
+    // number of frames
+    const numFrames = parseInt(tokens[1], 10);
+    if (isNaN(numFrames)) throw new Error('Failed to read number of frames.');
+
+    // frame time
+    tokens = lines
+      .shift()
+      .trim()
+      .split(/[\s]+/);
+    const frameTime = parseFloat(tokens[2]);
+    if (isNaN(frameTime)) throw new Error('Failed to read frame time.');
+
+    // read frame data line by line
+    for (let i = 0; i < numFrames; i += 1) {
+      tokens = lines
+        .shift()
+        .trim()
+        .split(/[\s]+/);
+
+      readFrameData(tokens, i * frameTime, root, list);
+    }
+
+    return root;
   };
 
   /*
@@ -299,73 +325,6 @@ const BVHImport = new (function() {
 		 - frameTime: playback time for this keyframe.
 		 - bone: the bone to read frame data from.
 	*/
-  this.readFrameData = function(data, frameTime, bone) {
-    if (bone.type === 'ENDSITE')
-      // end sites have no motion data
-      return;
-
-    // add keyframe
-    const keyframe = {
-      time: frameTime,
-      position: { x: 0, y: 0, z: 0 },
-      rotation: new Quat()
-    };
-
-    bone.frames.push(keyframe);
-
-    // parse values for each channel in node
-    for (let i = 0; i < bone.channels.length; i += 1) {
-      const quat = new Quat();
-      switch (bone.channels[i]) {
-        case 'Xposition':
-          keyframe.position.x = parseFloat(data.shift().trim());
-          break;
-        case 'Yposition':
-          keyframe.position.y = parseFloat(data.shift().trim());
-          break;
-        case 'Zposition':
-          keyframe.position.z = parseFloat(data.shift().trim());
-          break;
-        case 'Xrotation':
-          quat.setFromAxisAngle(
-            1,
-            0,
-            0,
-            (parseFloat(data.shift().trim()) * Math.PI) / 180
-          );
-
-          keyframe.rotation.multiply(quat);
-          break;
-        case 'Yrotation':
-          quat.setFromAxisAngle(
-            0,
-            1,
-            0,
-            (parseFloat(data.shift().trim()) * Math.PI) / 180
-          );
-
-          keyframe.rotation.multiply(quat);
-          break;
-        case 'Zrotation':
-          quat.setFromAxisAngle(
-            0,
-            0,
-            1,
-            (parseFloat(data.shift().trim()) * Math.PI) / 180
-          );
-
-          keyframe.rotation.multiply(quat);
-          break;
-        default:
-          throw new Error('invalid channel type');
-      }
-    }
-
-    // parse child nodes
-    for (let i = 0; i < bone.children.length; i += 1) {
-      BVHImport.readFrameData(data, frameTime, bone.children[i]);
-    }
-  };
 })();
 
-export default BVHImport;
+export default BvhHelper;

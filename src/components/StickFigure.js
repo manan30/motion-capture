@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 function StickFigure({ setRef }) {
   return (
-    <skinnedMesh ref={setRef}>
+    <skinnedMesh ref={setRef} position={[0, 0, 0]}>
       <geometry attach='geometry' />
       <meshPhongMaterial attach='material' skinning />
     </skinnedMesh>
