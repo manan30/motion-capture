@@ -39,7 +39,7 @@ function App() {
         <Scene type={value} />
       </Canvas>
       <a
-        href='https://github.com/manan30/keyframing'
+        href='https://github.com/manan30/motion-capture'
         target='_blank'
         rel='noopener noreferrer'>
         <CodeFAB src={Icon} />
