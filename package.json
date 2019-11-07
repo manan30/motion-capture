@@ -17,7 +17,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "homepage": "127.0.0.1:5500/build",
+  "homepage": "https://mananjoshi.me/projects/motion-capture",
   "eslintConfig": {
     "extends": "react-app"
   },
