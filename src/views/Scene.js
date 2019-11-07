@@ -6,20 +6,14 @@ import Light from '../components/Light';
 import Floor from '../components/Floor';
 import StickFigure from '../components/StickFigure';
 
-import File from '../files/Stand.bvh';
-
 import BVHHelper from '../utils/BVHHelper';
-
-const fileContents = fetch(File)
-  .then(res => res.text())
-  .then(contents => contents);
+import BVHFiles from '../files/Stand';
 
 let skeletonHelper;
 let mixer;
 
 function Scene() {
   const { camera, scene } = useThree();
-  const [contents, setContents] = useState();
   const [data, setData] = useState();
   const stickFigureRef = useRef();
 
@@ -30,15 +24,12 @@ function Scene() {
 
   camera.position.set(0, 200, 400);
 
-  fileContents.then(res => setContents(res));
-
   useEffect(() => {
-    if (contents)
-      setData(() => {
-        const raw = BVHHelper.readBvh(contents.split(/[\r\n]+/g));
-        return BVHHelper.toTHREE(raw);
-      });
-  }, [contents]);
+    setData(() => {
+      const raw = BVHHelper.readBvh(BVHFiles.Stand.split(/[\r\n]+/g));
+      return BVHHelper.toTHREE(raw);
+    });
+  }, []);
 
   if (stickFigureRef.current && data) {
     stickFigureRef.current.scale.set(0.9, 0.9, 0.9);

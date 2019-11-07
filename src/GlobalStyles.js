@@ -50,7 +50,6 @@ export const Select = styled.select`
   height: 100%;
   width: 100%;
   margin: 16px 0;
-  padding: 10px;
 
   border: none;
   text-decoration: none;

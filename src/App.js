@@ -16,13 +16,9 @@ function App() {
     setValue(e.target.value);
   };
 
-  const handleSubmit = e => {
-    console.log(e);
-  };
-
   return (
     <>
-      <Form onSubmit={handleSubmit}>
+      <Form>
         <label>
           Please select a bvh file
           <Select value={value} onChange={handleChange}>
@@ -40,7 +36,7 @@ function App() {
       </Form>
       <Canvas>
         <Controls />
-        <Scene />
+        <Scene type={value} />
       </Canvas>
       <a
         href='https://github.com/manan30/keyframing'
