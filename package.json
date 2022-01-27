@@ -9,7 +9,7 @@
     "react-scripts": "3.2.0",
     "react-three-fiber": "3.0.8",
     "styled-components": "4.4.1",
-    "three": "0.110.0"
+    "three": "0.137.0"
   },
   "scripts": {
     "start": "BROWSER='Firefox Developer Edition' react-scripts start",
